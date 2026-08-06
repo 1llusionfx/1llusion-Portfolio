@@ -1,0 +1,450 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------------------
+   Design tokens — pure monochrome
+   Emphasis comes from value contrast only. No hue anywhere.
+--------------------------------------------------------------------------- */
+
+@theme {
+  --color-bg: #070707;
+  --color-surface: #101012;
+  --color-surface-hover: #18181b;
+  --color-surface-raised: #1d1d21;
+
+  --color-line: rgba(255, 255, 255, 0.09);
+  --color-line-hover: rgba(255, 255, 255, 0.17);
+
+  --color-fg: #f5f5f5;
+  --color-fg-secondary: #b4b4b4;
+  --color-fg-muted: #7d7d7d;
+  --color-fg-faint: #565656;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-serif: var(--font-instrument-serif), ui-serif, Georgia, serif;
+
+  /* Tighter than the usual Tailwind curve — corners read as crisp, not soft. */
+  --radius-card: 8px;
+  --radius-tile: 6px;
+
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/* ---------------------------------------------------------------------------
+   Motion tokens (transitions.dev scale)
+
+   Aliased onto the existing easings rather than duplicated — --ease-out-expo
+   is already cubic-bezier(0.22, 1, 0.36, 1), which is --ease-smooth-out. One
+   vocabulary, no competing systems.
+--------------------------------------------------------------------------- */
+
+:root {
+  --duration-stagger: 40ms;
+  --duration-micro: 80ms;
+  --duration-quick: 150ms;
+  --duration-fast: 250ms;
+  --duration-medium: 350ms;
+  --duration-slow: 400ms;
+  --duration-very-slow: 500ms;
+
+  --ease-smooth-out: var(--ease-out-expo);
+  --ease-in-out: ease-in-out;
+  --ease-out: ease-out;
+
+  --distance-micro: 4px;
+  --distance-base: 8px;
+
+  --scale-large: 0.96;
+  --scale-small: 0.98;
+
+  --blur-small: 2px;
+
+  /* icon swap */
+  --icon-swap-dur: var(--duration-fast);
+  --icon-swap-blur: var(--blur-small);
+  --icon-swap-start-scale: 0.25;
+  --icon-swap-ease: var(--ease-in-out);
+
+  /* card resize */
+  --resize-dur: var(--duration-slow);
+  --resize-ease: var(--ease-smooth-out);
+
+  /* accordion */
+  --acc-expand: var(--duration-fast);
+  --acc-collapse: var(--duration-quick);
+  --acc-chevron: var(--duration-fast);
+  --acc-ease: var(--ease-smooth-out);
+}
+
+/* ---------------------------------------------------------------------------
+   Icon swap — two icons sharing one grid cell
+--------------------------------------------------------------------------- */
+
+.t-icon-swap {
+  position: relative;
+  display: inline-grid;
+}
+
+.t-icon-swap .t-icon {
+  grid-area: 1 / 1;
+  transition:
+    opacity var(--icon-swap-dur) var(--icon-swap-ease),
+    filter var(--icon-swap-dur) var(--icon-swap-ease),
+    transform var(--icon-swap-dur) var(--icon-swap-ease);
+  will-change: opacity, filter, transform;
+}
+
+.t-icon-swap[data-state="a"] .t-icon[data-icon="a"],
+.t-icon-swap[data-state="b"] .t-icon[data-icon="b"] {
+  opacity: 1;
+  filter: blur(0);
+  transform: scale(1);
+}
+
+.t-icon-swap[data-state="a"] .t-icon[data-icon="b"],
+.t-icon-swap[data-state="b"] .t-icon[data-icon="a"] {
+  opacity: 0;
+  filter: blur(var(--icon-swap-blur));
+  transform: scale(var(--icon-swap-start-scale));
+}
+
+/* ---------------------------------------------------------------------------
+   Accordion — grid-rows 0fr → 1fr, no JS height measurement
+--------------------------------------------------------------------------- */
+
+.t-acc-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--acc-collapse) var(--acc-ease);
+}
+
+.t-acc[data-open="true"] .t-acc-panel {
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--acc-expand) var(--acc-ease);
+}
+
+/* Padding lives here, never on .t-acc-panel — padding on a 0fr track leaves a
+   residual height strip so the panel never fully closes. */
+.t-acc-panel-inner {
+  overflow: hidden;
+  opacity: 0;
+  filter: blur(var(--blur-small));
+  transition:
+    opacity var(--acc-collapse) var(--acc-ease),
+    filter var(--acc-collapse) var(--acc-ease);
+}
+
+.t-acc[data-open="true"] .t-acc-panel-inner {
+  opacity: 1;
+  filter: blur(0);
+  transition:
+    opacity var(--acc-expand) var(--acc-ease),
+    filter var(--acc-expand) var(--acc-ease);
+}
+
+/* scaleY(-1) passes through a flat line at the midpoint like a `d:` path
+   morph, but animates everywhere — CSS path morphing is Chromium-only. */
+.t-acc-chevron {
+  display: inline-flex;
+  transform: scaleY(1);
+  transform-origin: center;
+  transition: transform var(--acc-chevron) var(--acc-ease);
+}
+
+.t-acc-chevron svg {
+  vector-effect: non-scaling-stroke;
+}
+
+.t-acc[data-open="true"] .t-acc-chevron {
+  transform: scaleY(-1);
+}
+
+/* ---------------------------------------------------------------------------
+   Card resize — tween height/width when a container's content state changes
+--------------------------------------------------------------------------- */
+
+.t-resize {
+  transition:
+    width var(--resize-dur) var(--resize-ease),
+    height var(--resize-dur) var(--resize-ease);
+  will-change: width, height;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-icon-swap .t-icon,
+  .t-acc-panel,
+  .t-acc-panel-inner,
+  .t-acc-chevron,
+  .t-resize {
+    transition: none !important;
+  }
+}
+
+@layer base {
+  html {
+    background-color: var(--color-bg);
+    /* Deliberately NOT scroll-behavior: smooth. Next resets scroll to the top
+       on navigation, and smooth scrolling animates that reset — arriving on a
+       short route after scrolling a long one looked like the page sliding up
+       from below. Anchor links opt in individually instead. */
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    min-height: 100%;
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: rgba(255, 255, 255, 0.16);
+    color: #ffffff;
+  }
+
+  :focus-visible {
+    outline: 1px solid rgba(255, 255, 255, 0.5);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Raised surfaces
+
+   The dimensional look is three stacked effects, not a single box-shadow:
+     1. a 1px top inner highlight, as if lit from above
+     2. a soft ambient drop shadow to lift it off the page
+     3. a faint top-to-bottom gradient across the fill
+   Hover deepens all three rather than changing colour.
+--------------------------------------------------------------------------- */
+
+.surface-raised {
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.035),
+    rgba(255, 255, 255, 0) 55%
+  );
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.02),
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 4px 12px -2px rgba(0, 0, 0, 0.45);
+  transition:
+    box-shadow 220ms var(--ease-out-expo),
+    background-color 220ms var(--ease-out-expo),
+    border-color 220ms var(--ease-out-expo),
+    transform 220ms var(--ease-out-expo);
+}
+
+.surface-raised-hover:hover {
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 2px 4px rgba(0, 0, 0, 0.55),
+    0 8px 24px -4px rgba(0, 0, 0, 0.55),
+    /* the bloom: light catching the edge, not a halo around it */
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 0 16px -2px rgba(255, 255, 255, 0.08);
+}
+
+/**
+ * Image zoom layer.
+ *
+ * Scaling an `inset-0` absolute image jitters: the browser re-rasterises it
+ * against the parent's rounded clip on every frame. Holding it on its own
+ * composited layer — promoted at rest, backface hidden, one transform and
+ * nothing else animating on any ancestor — makes the zoom a pure GPU step.
+ *
+ * The tiny resting scale matters: starting at exactly 1 lets the browser drop
+ * the layer promotion until hover, and re-promoting mid-gesture is the visible
+ * hitch. Overscanning slightly also hides edge bleed as it grows.
+ */
+.zoom-layer {
+  transform: scale(1.004) translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform;
+  transition: transform 600ms var(--ease-out-expo);
+}
+
+.group:hover .zoom-layer {
+  transform: scale(1.07) translateZ(0);
+}
+
+/**
+ * Interactive feedback for anything you can press.
+ * Hover lifts a hair, press settles back past neutral. Both are transforms
+ * on a promoted layer, so neither triggers layout.
+ */
+.press {
+  transform: translateZ(0);
+  transition:
+    transform 200ms var(--ease-out-expo),
+    box-shadow 220ms var(--ease-out-expo),
+    background-color 220ms var(--ease-out-expo),
+    border-color 220ms var(--ease-out-expo);
+}
+
+.press:hover {
+  transform: translateY(-1px);
+}
+
+.press:active {
+  transform: translateY(0) scale(0.975);
+  transition-duration: 90ms;
+}
+
+/* Deeper treatment for the nav rail and modal, which float above everything. */
+.surface-floating {
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.04),
+    rgba(255, 255, 255, 0) 60%
+  );
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.07),
+    0 2px 6px rgba(0, 0, 0, 0.5),
+    0 12px 40px -8px rgba(0, 0, 0, 0.7);
+}
+
+/* ---------------------------------------------------------------------------
+   Page texture
+--------------------------------------------------------------------------- */
+
+/**
+ * Two stacked layers make the page read bright without lightening the fill:
+ *   1. a wide, very soft light pool behind the content column
+ *   2. a corner vignette that darkens the edges
+ * The contrast between the two is what the eye reads as "brighter" — the
+ * base colour is actually darker than before.
+ */
+.page-glow {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(
+      70% 55% at 50% 42%,
+      rgba(255, 255, 255, 0.055) 0%,
+      rgba(255, 255, 255, 0.022) 38%,
+      rgba(255, 255, 255, 0) 72%
+    ),
+    radial-gradient(
+      120% 120% at 50% 50%,
+      rgba(0, 0, 0, 0) 45%,
+      rgba(0, 0, 0, 0.55) 100%
+    );
+}
+
+.page-texture {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.016) 0px,
+    rgba(255, 255, 255, 0.016) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+}
+
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* ---------------------------------------------------------------------------
+   Scrollbars
+--------------------------------------------------------------------------- */
+
+body {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+body::-webkit-scrollbar {
+  display: none;
+}
+
+.scroll-panel {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+.scroll-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scroll-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+
+/* ---------------------------------------------------------------------------
+   Tooltips — scale + lift from the trigger edge, not a plain fade
+--------------------------------------------------------------------------- */
+
+/* Tuned to the transitions.dev tooltip spec — a hint should appear quickly
+   and subtly. A stronger scale or a spring reads as an entrance, not a hint. */
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+    transform: scale(var(--scale-small));
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes tooltip-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(var(--scale-small));
+  }
+}
+
+.tooltip-content {
+  transform-origin: var(--radix-tooltip-content-transform-origin);
+}
+
+.tooltip-content[data-state="delayed-open"],
+.tooltip-content[data-state="instant-open"] {
+  animation: tooltip-in var(--duration-quick) var(--ease-out);
+}
+
+.tooltip-content[data-state="closed"] {
+  animation: tooltip-out var(--duration-micro) var(--ease-out);
+}
+
+/* ---------------------------------------------------------------------------
+   Reduced motion
+--------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
